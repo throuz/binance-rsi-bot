@@ -31,8 +31,8 @@ const newOrder = async (side) => {
     await binanceFuturesAPI.post(
       `/fapi/v1/order?${queryString}&signature=${signature}`
     );
-    log(`New order! ${side} ${quantity}`);
-    await sendLineNotify(`New order! ${side} ${quantity}`);
+    log(`New ${side} order!`);
+    await sendLineNotify(`New ${side} order!`);
   } catch (error) {
     await handleAPIError(error);
   }
