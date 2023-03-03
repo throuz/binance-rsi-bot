@@ -6,7 +6,14 @@ import { binanceFuturesAPI, taAPI } from "./axios-instances.js";
 import { handleAPIError, log } from "./common.js";
 
 const { SECRET_KEY } = env;
-const { BASE_ASSET, QUOTE_ASSET, SYMBOL, LEVERAGE } = tradeConfig;
+const {
+  BASE_ASSET,
+  QUOTE_ASSET,
+  SYMBOL,
+  LEVERAGE,
+  RSI_OVERBOUGHT,
+  RSI_OVERSOLD
+} = tradeConfig;
 
 const getSignature = (queryString) =>
   crypto.createHmac("sha256", SECRET_KEY).update(queryString).digest("hex");
@@ -53,8 +60,10 @@ const getOppositeSide = (side) => {
 };
 
 const getAvailableQuantity = async () => {
-  const availableBalance = await getAvailableBalance();
-  const markPrice = await getMarkPrice();
+  const [availableBalance, markPrice] = await Promise.all([
+    getAvailableBalance(),
+    getMarkPrice()
+  ]);
   const availableFunds = availableBalance * LEVERAGE;
   return Math.trunc((availableFunds / markPrice) * 1000) / 1000;
 };
@@ -105,10 +114,10 @@ const getSignal = async () => {
     const response = await taAPI.get(`/rsi?${queryString}`);
     const RSI = response.data.value;
     log(`RSI: ${RSI}`);
-    if (RSI < 30) {
+    if (RSI < RSI_OVERSOLD) {
       return "BUY";
     }
-    if (RSI > 70) {
+    if (RSI > RSI_OVERBOUGHT) {
       return "SELL";
     }
     return "NONE";
@@ -117,22 +126,14 @@ const getSignal = async () => {
   }
 };
 
-const getOrderQuantity = async () => {
-  const availableQuantity = await getAvailableQuantity();
-  const allowableQuantity = await getAllowableQuantity();
-  return Math.min(availableQuantity, allowableQuantity) === 0 ? 0 : 0.001;
-};
-
 const getPositionDirection = (positionAmount) => {
-  if (positionAmount === 0) {
-    return "NONE";
-  }
   if (positionAmount > 0) {
     return "BUY";
   }
   if (positionAmount < 0) {
     return "SELL";
   }
+  return "NONE";
 };
 
 export {
@@ -144,6 +145,5 @@ export {
   getPositionAmount,
   getAllowableQuantity,
   getSignal,
-  getOrderQuantity,
   getPositionDirection
 };

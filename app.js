@@ -6,21 +6,22 @@ import {
   getPositionAmount,
   getOppositeSide,
   getSignal,
-  getOrderQuantity,
-  getPositionDirection
+  getPositionDirection,
+  getAvailableQuantity,
+  getAllowableQuantity
 } from "./src/helpers.js";
 import tradeConfig from "./src/trade-config.js";
 
-const { SYMBOL } = tradeConfig;
+const { SYMBOL, QUANTITY_PER_ORDER } = tradeConfig;
 
-const newOrder = async (side, quantity) => {
+const newOrder = async (side) => {
   try {
     const totalParams = {
       symbol: SYMBOL,
       type: "MARKET",
       side,
       positionSide: "BOTH",
-      quantity,
+      quantity: QUANTITY_PER_ORDER,
       reduceOnly: false,
       timestamp: Date.now()
     };
@@ -30,8 +31,8 @@ const newOrder = async (side, quantity) => {
     await binanceFuturesAPI.post(
       `/fapi/v1/order?${queryString}&signature=${signature}`
     );
-    log(`New orders! ${side} ${quantity}`);
-    await sendLineNotify(`New orders! ${side} ${quantity}`);
+    log(`New order! ${side} ${quantity}`);
+    await sendLineNotify(`New order! ${side} ${quantity}`);
   } catch (error) {
     await handleAPIError(error);
   }
@@ -62,31 +63,31 @@ const closePosition = async (side, quantity) => {
   }
 };
 
+const makeNewOrder = async (signal) => {
+  const [availableQuantity, allowableQuantity] = await Promise.all([
+    getAvailableQuantity(),
+    getAllowableQuantity()
+  ]);
+
+  if (Math.min(availableQuantity, allowableQuantity) >= QUANTITY_PER_ORDER) {
+    await newOrder(signal);
+  } else {
+    log("Insufficient quantity, unable to place an order!");
+  }
+};
+
 const check = async () => {
   const signal = await getSignal();
   if (signal !== "NONE") {
     const positionAmount = await getPositionAmount();
-    const positionDirection = getPositionDirection(Number(positionAmount));
-    const oppositeSide = getOppositeSide(signal);
+    const positionDirection = getPositionDirection(positionAmount);
+    const oppositeSignal = getOppositeSide(signal);
 
-    if (positionDirection === "NONE") {
-      const orderQuantity = await getOrderQuantity();
-      await newOrder(signal, orderQuantity);
-    }
-
-    if (positionDirection === signal) {
-      const orderQuantity = await getOrderQuantity();
-      if (orderQuantity > 0) {
-        await newOrder(signal, orderQuantity);
-      } else {
-        log("Insufficient quantity, unable to place an order!");
-      }
-    }
-
-    if (positionDirection === oppositeSide) {
+    if (positionDirection === oppositeSignal) {
       await closePosition(signal, Math.abs(positionAmount));
-      const orderQuantity = await getOrderQuantity();
-      await newOrder(signal, orderQuantity);
+      await makeNewOrder(signal);
+    } else {
+      await makeNewOrder(signal);
     }
   }
   setTimeout(check, 60000);
