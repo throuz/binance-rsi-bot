@@ -1,97 +1,35 @@
 import querystring from "node:querystring";
-import WebSocket from "ws";
-import env from "./src/env.js";
-import tradeConfig from "./src/trade-config.js";
 import { binanceFuturesAPI } from "./src/axios-instances.js";
-import { sendLineNotify, log, handleAPIError } from "./src/common.js";
+import { handleAPIError, sendLineNotify, log } from "./src/common.js";
 import {
-  getQuantity,
   getSignature,
+  getPositionAmount,
   getOppositeSide,
-  getTPSLPrices,
-  getSide,
-  getAvailableQuantity
+  getSignal,
+  getOrderQuantity,
+  getPositionDirection
 } from "./src/helpers.js";
+import tradeConfig from "./src/trade-config.js";
 
-const { WEBSOCKET_BASEURL } = env;
-const { QUOTE_ASSET, SYMBOL } = tradeConfig;
+const { SYMBOL } = tradeConfig;
 
-let stopLossTimes = 0;
-
-const handleTimeInForceError = async (orders) => {
+const newOrder = async (side, quantity) => {
   try {
     const totalParams = {
-      batchOrders: JSON.stringify(orders),
-      timestamp: Date.now()
-    };
-    const queryString = querystring.stringify(totalParams);
-    const signature = getSignature(queryString);
-
-    const response = await binanceFuturesAPI.post(
-      `/fapi/v1/batchOrders?${queryString}&signature=${signature}`
-    );
-    if (response.data.some((element) => element.code === -4129)) {
-      await handleTimeInForceError(orders);
-    }
-  } catch (error) {
-    await handleAPIError(error);
-  }
-};
-
-const newOrders = async () => {
-  try {
-    const side = await getSide();
-    const oppositeSide = getOppositeSide(side);
-    const quantity = getQuantity(stopLossTimes).toString();
-    const { takeProfitPrice, stopLossPrice } = await getTPSLPrices(
-      side,
-      stopLossTimes
-    );
-    const marketOrder = {
       symbol: SYMBOL,
       type: "MARKET",
       side,
       positionSide: "BOTH",
       quantity,
-      reduceOnly: "false"
-    };
-    const takeProfitOrder = {
-      symbol: SYMBOL,
-      side: oppositeSide,
-      positionSide: "BOTH",
-      type: "TAKE_PROFIT_MARKET",
-      timeInForce: "GTE_GTC",
-      stopPrice: takeProfitPrice,
-      workingType: "MARK_PRICE",
-      closePosition: "true"
-    };
-    const stopLossOrder = {
-      symbol: SYMBOL,
-      side: oppositeSide,
-      positionSide: "BOTH",
-      type: "STOP_MARKET",
-      timeInForce: "GTE_GTC",
-      stopPrice: stopLossPrice,
-      workingType: "MARK_PRICE",
-      closePosition: "true"
-    };
-    const totalParams = {
-      batchOrders: JSON.stringify([
-        marketOrder,
-        takeProfitOrder,
-        stopLossOrder
-      ]),
+      reduceOnly: false,
       timestamp: Date.now()
     };
     const queryString = querystring.stringify(totalParams);
     const signature = getSignature(queryString);
 
-    const response = await binanceFuturesAPI.post(
-      `/fapi/v1/batchOrders?${queryString}&signature=${signature}`
+    await binanceFuturesAPI.post(
+      `/fapi/v1/order?${queryString}&signature=${signature}`
     );
-    if (response.data.some((element) => element.code === -4129)) {
-      await handleTimeInForceError([takeProfitOrder, stopLossOrder]);
-    }
     log(`New orders! ${side} ${quantity}`);
     await sendLineNotify(`New orders! ${side} ${quantity}`);
   } catch (error) {
@@ -99,100 +37,59 @@ const newOrders = async () => {
   }
 };
 
-const extendListenKeyValidity = async () => {
+const closePosition = async (side, quantity) => {
   try {
-    await binanceFuturesAPI.put("/fapi/v1/listenKey");
+    const totalParams = {
+      symbol: SYMBOL,
+      type: "MARKET",
+      side,
+      quantity,
+      positionSide: "BOTH",
+      reduceOnly: true,
+      newOrderRespType: "RESULT",
+      timestamp: Date.now()
+    };
+    const queryString = querystring.stringify(totalParams);
+    const signature = getSignature(queryString);
+
+    await binanceFuturesAPI.post(
+      `/fapi/v1/order?${queryString}&signature=${signature}`
+    );
+    log("Close position!");
+    await sendLineNotify("Close position!");
   } catch (error) {
     await handleAPIError(error);
   }
 };
 
-let closeConnectTimeoutID;
+const check = async () => {
+  const signal = await getSignal();
+  if (signal !== "NONE") {
+    const positionAmount = await getPositionAmount();
+    const positionDirection = getPositionDirection(Number(positionAmount));
+    const oppositeSide = getOppositeSide(signal);
 
-const setCloseConnect = (ws) => {
-  if (closeConnectTimeoutID) {
-    clearTimeout(closeConnectTimeoutID);
-  }
-  closeConnectTimeoutID = setTimeout(() => {
-    ws.close();
-    closeConnectTimeoutID = undefined;
-  }, 301000);
-};
-
-const connectWebSocket = (listenKey) => {
-  const ws = new WebSocket(`${WEBSOCKET_BASEURL}/ws/${listenKey}`);
-
-  ws.on("open", () => {
-    log("Socket open!");
-    setCloseConnect(ws);
-  });
-
-  ws.on("ping", () => {
-    setCloseConnect(ws);
-    ws.pong();
-  });
-
-  ws.on("message", async (event) => {
-    const eventObj = JSON.parse(event);
-
-    if (eventObj.e === "ACCOUNT_UPDATE") {
-      const walletBalance = eventObj.a.B.find(({ a }) => a === QUOTE_ASSET).wb;
-      log(`Wallet balance: ${walletBalance} BUSD`);
-      await sendLineNotify(`Wallet balance: ${walletBalance} BUSD`);
+    if (positionDirection === "NONE") {
+      const orderQuantity = await getOrderQuantity();
+      await newOrder(signal, orderQuantity);
     }
 
-    if (
-      eventObj.e === "ORDER_TRADE_UPDATE" &&
-      eventObj.o.ot === "TAKE_PROFIT_MARKET" &&
-      eventObj.o.x === "TRADE" &&
-      eventObj.o.X === "FILLED"
-    ) {
-      log("Take profit!");
-      await sendLineNotify("Take profit!");
-      if (stopLossTimes !== 0) {
-        stopLossTimes = 0;
+    if (positionDirection === signal) {
+      const orderQuantity = await getOrderQuantity();
+      if (orderQuantity > 0) {
+        await newOrder(signal, orderQuantity);
+      } else {
+        log("Insufficient quantity, unable to place an order!");
       }
-      await newOrders();
     }
 
-    if (
-      eventObj.e === "ORDER_TRADE_UPDATE" &&
-      eventObj.o.ot === "STOP_MARKET" &&
-      eventObj.o.x === "TRADE" &&
-      eventObj.o.X === "FILLED"
-    ) {
-      log("Stop loss!");
-      await sendLineNotify("Stop loss!");
-      stopLossTimes += 1;
-      const quantity = getQuantity(stopLossTimes);
-      const availableQuantity = await getAvailableQuantity();
-      if (quantity > availableQuantity) {
-        stopLossTimes = 0;
-      }
-      await newOrders();
+    if (positionDirection === oppositeSide) {
+      await closePosition(signal, Math.abs(positionAmount));
+      const orderQuantity = await getOrderQuantity();
+      await newOrder(signal, orderQuantity);
     }
-  });
-
-  ws.on("close", () => {
-    log("Socket close!");
-    connectWebSocket(listenKey);
-  });
-
-  ws.on("error", () => {
-    log("Socket error!");
-    ws.close();
-  });
-};
-
-const startUserDataStream = async () => {
-  try {
-    const response = await binanceFuturesAPI.post("/fapi/v1/listenKey");
-    setInterval(extendListenKeyValidity, 3540000);
-    connectWebSocket(response.data.listenKey);
-    await newOrders();
-  } catch (error) {
-    await handleAPIError(error);
   }
+  setTimeout(check, 60000);
 };
 
-startUserDataStream();
+check();

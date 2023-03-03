@@ -6,17 +6,7 @@ import { binanceFuturesAPI, taAPI } from "./axios-instances.js";
 import { handleAPIError, log } from "./common.js";
 
 const { SECRET_KEY } = env;
-const {
-  BASE_ASSET,
-  QUOTE_ASSET,
-  SYMBOL,
-  LEVERAGE,
-  FEE_RATE,
-  TP_SL_RATE,
-  INITIAL_QUANTITY
-} = tradeConfig;
-
-const getQuantity = (stopLossTimes) => INITIAL_QUANTITY * 2 ** stopLossTimes;
+const { BASE_ASSET, QUOTE_ASSET, SYMBOL, LEVERAGE } = tradeConfig;
 
 const getSignature = (queryString) =>
   crypto.createHmac("sha256", SECRET_KEY).update(queryString).digest("hex");
@@ -62,42 +52,6 @@ const getOppositeSide = (side) => {
   }
 };
 
-const getTPSLPrices = async (side, stopLossTimes) => {
-  let takeProfitPrice;
-  let stopLossPrice;
-  const markPrice = await getMarkPrice();
-  const orderCostRate = LEVERAGE * FEE_RATE * 2; // 3%
-  const tpslRate = TP_SL_RATE + orderCostRate * (stopLossTimes + 1);
-  const higherClosingPrice = (
-    Math.round(markPrice * (1 + tpslRate / LEVERAGE) * 10) / 10
-  ).toString();
-  const lowerClosingPrice = (
-    Math.round(markPrice * (1 - tpslRate / LEVERAGE) * 10) / 10
-  ).toString();
-  if (side === "BUY") {
-    takeProfitPrice = higherClosingPrice;
-    stopLossPrice = lowerClosingPrice;
-  } else {
-    takeProfitPrice = lowerClosingPrice;
-    stopLossPrice = higherClosingPrice;
-  }
-  return { takeProfitPrice, stopLossPrice };
-};
-
-const getSide = async () => {
-  try {
-    const totalParams = { symbol: SYMBOL, period: "5m", limit: "1" };
-    const queryString = querystring.stringify(totalParams);
-
-    const response = await binanceFuturesAPI.get(
-      `/futures/data/topLongShortPositionRatio?${queryString}`
-    );
-    return response.data[0].longShortRatio > 1 ? "BUY" : "SELL";
-  } catch (error) {
-    await handleAPIError(error);
-  }
-};
-
 const getAvailableQuantity = async () => {
   const availableBalance = await getAvailableBalance();
   const markPrice = await getMarkPrice();
@@ -118,32 +72,6 @@ const getPositionAmount = async () => {
   } catch (error) {
     await handleAPIError(error);
   }
-};
-
-const getMaxNotionalValue = async () => {
-  try {
-    const totalParams = {
-      symbol: SYMBOL,
-      leverage: LEVERAGE,
-      timestamp: Date.now()
-    };
-    const queryString = querystring.stringify(totalParams);
-    const signature = getSignature(queryString);
-
-    const response = await binanceFuturesAPI.post(
-      `/fapi/v1/leverage?${queryString}&signature=${signature}`
-    );
-    return response.data.maxNotionalValue;
-  } catch (error) {
-    await handleAPIError(error);
-  }
-};
-
-const getMaxAllowableQuantity = async () => {
-  const maxNotionalValue = await getMaxNotionalValue();
-  const markPrice = await getMarkPrice();
-  const minTradeAmount = markPrice / 1000;
-  return Math.trunc(maxNotionalValue / minTradeAmount) / 1000;
 };
 
 const getAllowableQuantity = async () => {
@@ -208,17 +136,12 @@ const getPositionDirection = (positionAmount) => {
 };
 
 export {
-  getQuantity,
   getSignature,
   getAvailableBalance,
   getMarkPrice,
   getOppositeSide,
-  getTPSLPrices,
-  getSide,
   getAvailableQuantity,
   getPositionAmount,
-  getMaxNotionalValue,
-  getMaxAllowableQuantity,
   getAllowableQuantity,
   getSignal,
   getOrderQuantity,
