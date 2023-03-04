@@ -1,4 +1,3 @@
-import querystring from "node:querystring";
 import { binanceFuturesAPI } from "./src/axios-instances.js";
 import { handleAPIError, sendLineNotify, log } from "./src/common.js";
 import {
@@ -25,12 +24,12 @@ const newOrder = async (side) => {
       reduceOnly: false,
       timestamp: Date.now()
     };
-    const queryString = querystring.stringify(totalParams);
-    const signature = getSignature(queryString);
+    const signature = getSignature(totalParams);
 
-    await binanceFuturesAPI.post(
-      `/fapi/v1/order?${queryString}&signature=${signature}`
-    );
+    await binanceFuturesAPI.post("/fapi/v1/order", {
+      ...totalParams,
+      signature
+    });
     log(`New ${side} order!`);
     await sendLineNotify(`New ${side} order!`);
   } catch (error) {
@@ -50,12 +49,12 @@ const closePosition = async (side, quantity) => {
       newOrderRespType: "RESULT",
       timestamp: Date.now()
     };
-    const queryString = querystring.stringify(totalParams);
-    const signature = getSignature(queryString);
+    const signature = getSignature(totalParams);
 
-    await binanceFuturesAPI.post(
-      `/fapi/v1/order?${queryString}&signature=${signature}`
-    );
+    await binanceFuturesAPI.post("/fapi/v1/order", {
+      ...totalParams,
+      signature
+    });
     log("Close position!");
     await sendLineNotify("Close position!");
   } catch (error) {

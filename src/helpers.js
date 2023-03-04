@@ -6,27 +6,26 @@ import { binanceFuturesAPI, taAPI } from "./axios-instances.js";
 import { handleAPIError, log } from "./common.js";
 
 const { SECRET_KEY } = env;
-const {
-  BASE_ASSET,
-  QUOTE_ASSET,
-  SYMBOL,
-  LEVERAGE,
-  RSI_OVERBOUGHT,
-  RSI_OVERSOLD
-} = tradeConfig;
+const { QUOTE_ASSET, SYMBOL, LEVERAGE, RSI_OVERBOUGHT, RSI_OVERSOLD } =
+  tradeConfig;
 
-const getSignature = (queryString) =>
-  crypto.createHmac("sha256", SECRET_KEY).update(queryString).digest("hex");
+const getSignature = (totalParams) => {
+  const queryString = querystring.stringify(totalParams);
+  const signature = crypto
+    .createHmac("sha256", SECRET_KEY)
+    .update(queryString)
+    .digest("hex");
+  return signature;
+};
 
 const getAvailableBalance = async () => {
   try {
     const totalParams = { timestamp: Date.now() };
-    const queryString = querystring.stringify(totalParams);
-    const signature = getSignature(queryString);
+    const signature = getSignature(totalParams);
 
-    const response = await binanceFuturesAPI.get(
-      `/fapi/v1/balance?${queryString}&signature=${signature}`
-    );
+    const response = await binanceFuturesAPI.get("/fapi/v1/balance", {
+      params: { ...totalParams, signature }
+    });
     const availableBalance = response.data.find(
       ({ asset }) => asset === QUOTE_ASSET
     ).withdrawAvailable;
@@ -39,11 +38,10 @@ const getAvailableBalance = async () => {
 const getMarkPrice = async () => {
   try {
     const totalParams = { symbol: SYMBOL };
-    const queryString = querystring.stringify(totalParams);
 
-    const response = await binanceFuturesAPI.get(
-      `/fapi/v1/premiumIndex?${queryString}`
-    );
+    const response = await binanceFuturesAPI.get("/fapi/v1/premiumIndex", {
+      params: totalParams
+    });
     return response.data.markPrice;
   } catch (error) {
     await handleAPIError(error);
@@ -71,12 +69,11 @@ const getAvailableQuantity = async () => {
 const getPositionAmount = async () => {
   try {
     const totalParams = { symbol: SYMBOL, timestamp: Date.now() };
-    const queryString = querystring.stringify(totalParams);
-    const signature = getSignature(queryString);
+    const signature = getSignature(totalParams);
 
-    const response = await binanceFuturesAPI.get(
-      `/fapi/v2/positionRisk?${queryString}&signature=${signature}`
-    );
+    const response = await binanceFuturesAPI.get("/fapi/v2/positionRisk", {
+      params: { ...totalParams, signature }
+    });
     return response.data[0].positionAmt;
   } catch (error) {
     await handleAPIError(error);
@@ -86,12 +83,11 @@ const getPositionAmount = async () => {
 const getAllowableQuantity = async () => {
   try {
     const totalParams = { symbol: SYMBOL, timestamp: Date.now() };
-    const queryString = querystring.stringify(totalParams);
-    const signature = getSignature(queryString);
+    const signature = getSignature(totalParams);
 
-    const response = await binanceFuturesAPI.get(
-      `/fapi/v2/positionRisk?${queryString}&signature=${signature}`
-    );
+    const response = await binanceFuturesAPI.get("/fapi/v2/positionRisk", {
+      params: { ...totalParams, signature }
+    });
     const { maxNotionalValue, positionAmt } = response.data[0];
     const markPrice = await getMarkPrice();
     const maxAllowableQuantity =
@@ -104,14 +100,7 @@ const getAllowableQuantity = async () => {
 
 const getSignal = async () => {
   try {
-    const totalParams = {
-      exchange: "binance",
-      symbol: `${BASE_ASSET}/${QUOTE_ASSET}`,
-      interval: "1m"
-    };
-    const queryString = querystring.stringify(totalParams);
-
-    const response = await taAPI.get(`/rsi?${queryString}`);
+    const response = await taAPI.get("/rsi");
     const RSI = response.data.value;
     log(`RSI: ${RSI}`);
     if (RSI < RSI_OVERSOLD) {
