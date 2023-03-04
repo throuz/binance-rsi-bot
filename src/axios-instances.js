@@ -2,7 +2,7 @@ import axios from "axios";
 import env from "./env.js";
 import tradeConfig from "./trade-config.js";
 
-const { LINE_NOTIFY_TOKEN, REST_BASEURL, API_KEY, TAAPI_API_KEY } = env;
+const { LINE_NOTIFY_TOKEN, REST_BASEURL, API_KEY, TAAPI_SECRET } = env;
 const { BASE_ASSET, QUOTE_ASSET } = tradeConfig;
 
 const lineNotifyAPI = axios.create({
@@ -24,7 +24,7 @@ const binanceFuturesAPI = axios.create({
 const taAPI = axios.create({
   baseURL: "https://api.taapi.io",
   params: {
-    secret: TAAPI_API_KEY,
+    secret: TAAPI_SECRET,
     exchange: "binance",
     symbol: `${BASE_ASSET}/${QUOTE_ASSET}`,
     interval: "1m"

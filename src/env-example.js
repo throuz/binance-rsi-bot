@@ -3,5 +3,5 @@ export default {
   SECRET_KEY: "Your secret key",
   REST_BASEURL: "https://fapi.binance.com",
   LINE_NOTIFY_TOKEN: "Your line notify token",
-  TAAPI_API_KEY: "Your taapi api key"
+  TAAPI_SECRET: "Your taapi api key"
 };
