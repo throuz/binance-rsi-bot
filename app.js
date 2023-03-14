@@ -1,4 +1,4 @@
-import tradeConfig from "./src/trade-config.js";
+import tradeConfig from "./configs/trade-config.js";
 import { log } from "./src/common.js";
 import {
   getPositionAmount,

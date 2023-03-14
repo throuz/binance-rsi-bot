@@ -1,4 +1,4 @@
-import tradeConfig from "./trade-config.js";
+import tradeConfig from "../configs/trade-config.js";
 import { binanceFuturesAPI } from "./web-services.js";
 import { handleAPIError, sendLineNotify, log } from "./common.js";
 import { getSignature } from "./helpers.js";

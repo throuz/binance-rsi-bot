@@ -1,6 +1,6 @@
 import axios from "axios";
-import env from "./env.js";
-import tradeConfig from "./trade-config.js";
+import env from "../configs/env.js";
+import tradeConfig from "../configs/trade-config.js";
 
 const { LINE_NOTIFY_TOKEN, REST_BASEURL, API_KEY, TAAPI_SECRET } = env;
 const { BASE_ASSET, QUOTE_ASSET } = tradeConfig;
