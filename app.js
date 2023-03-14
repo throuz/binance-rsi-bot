@@ -1,7 +1,6 @@
-import { binanceFuturesAPI } from "./src/web-services.js";
-import { handleAPIError, sendLineNotify, log } from "./src/common.js";
+import tradeConfig from "./src/trade-config.js";
+import { log } from "./src/common.js";
 import {
-  getSignature,
   getPositionAmount,
   getOppositeSide,
   getSignal,
@@ -9,58 +8,9 @@ import {
   getAvailableQuantity,
   getAllowableQuantity
 } from "./src/helpers.js";
-import tradeConfig from "./src/trade-config.js";
+import { newOrder, closePosition } from "./src/trade.js";
 
-const { SYMBOL, QUANTITY_PER_ORDER } = tradeConfig;
-
-const newOrder = async (side) => {
-  try {
-    const totalParams = {
-      symbol: SYMBOL,
-      type: "MARKET",
-      side,
-      positionSide: "BOTH",
-      quantity: QUANTITY_PER_ORDER,
-      reduceOnly: false,
-      timestamp: Date.now()
-    };
-    const signature = getSignature(totalParams);
-
-    await binanceFuturesAPI.post("/fapi/v1/order", {
-      ...totalParams,
-      signature
-    });
-    log(`New ${side} order!`);
-    await sendLineNotify(`New ${side} order!`);
-  } catch (error) {
-    await handleAPIError(error);
-  }
-};
-
-const closePosition = async (side, quantity) => {
-  try {
-    const totalParams = {
-      symbol: SYMBOL,
-      type: "MARKET",
-      side,
-      quantity,
-      positionSide: "BOTH",
-      reduceOnly: true,
-      newOrderRespType: "RESULT",
-      timestamp: Date.now()
-    };
-    const signature = getSignature(totalParams);
-
-    await binanceFuturesAPI.post("/fapi/v1/order", {
-      ...totalParams,
-      signature
-    });
-    log("Close position!");
-    await sendLineNotify("Close position!");
-  } catch (error) {
-    await handleAPIError(error);
-  }
-};
+const { QUANTITY_PER_ORDER } = tradeConfig;
 
 const makeNewOrder = async (signal) => {
   const [availableQuantity, allowableQuantity] = await Promise.all([
@@ -89,7 +39,9 @@ const check = async () => {
       await makeNewOrder(signal);
     }
   }
-  setTimeout(check, 60000);
 };
 
 check();
+setInterval(() => {
+  check();
+}, 60000);
