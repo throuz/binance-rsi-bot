@@ -2,7 +2,7 @@ import crypto from "node:crypto";
 import querystring from "node:querystring";
 import env from "./env.js";
 import tradeConfig from "./trade-config.js";
-import { binanceFuturesAPI, taAPI } from "./axios-instances.js";
+import { binanceFuturesAPI, taAPI } from "./web-services.js";
 import { handleAPIError, log } from "./common.js";
 
 const { SECRET_KEY } = env;

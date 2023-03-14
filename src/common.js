@@ -1,4 +1,4 @@
-import { lineNotifyAPI } from "./axios-instances.js";
+import { lineNotifyAPI } from "./web-services.js";
 
 const errorHandler = (error) => {
   if (error.response) {

@@ -1,4 +1,4 @@
-import { binanceFuturesAPI } from "./src/axios-instances.js";
+import { binanceFuturesAPI } from "./src/web-services.js";
 import { handleAPIError, sendLineNotify, log } from "./src/common.js";
 import {
   getSignature,
