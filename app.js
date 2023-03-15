@@ -10,7 +10,9 @@ import {
 } from "./src/helpers.js";
 import { newOrder, closePosition } from "./src/trade.js";
 
-const { QUANTITY_PER_ORDER } = tradeConfig;
+const { INITIAL_QUANTITY, SCALE_OUT_RATE } = tradeConfig;
+
+let addPositionTimes = 0;
 
 const makeNewOrder = async (signal) => {
   const [availableQuantity, allowableQuantity] = await Promise.all([
@@ -18,8 +20,13 @@ const makeNewOrder = async (signal) => {
     getAllowableQuantity()
   ]);
 
-  if (Math.min(availableQuantity, allowableQuantity) >= QUANTITY_PER_ORDER) {
-    await newOrder(signal);
+  const orderQuantity =
+    Math.trunc(INITIAL_QUANTITY * SCALE_OUT_RATE ** addPositionTimes * 1000) /
+    1000;
+
+  if (Math.min(availableQuantity, allowableQuantity) >= orderQuantity) {
+    await newOrder(signal, orderQuantity);
+    addPositionTimes++;
   } else {
     log("Insufficient quantity, unable to place an order!");
   }

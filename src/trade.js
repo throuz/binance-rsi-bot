@@ -3,16 +3,16 @@ import { binanceFuturesAPI } from "./web-services.js";
 import { handleAPIError, sendLineNotify, log } from "./common.js";
 import { getSignature } from "./helpers.js";
 
-const { SYMBOL, QUANTITY_PER_ORDER } = tradeConfig;
+const { SYMBOL } = tradeConfig;
 
-const newOrder = async (side) => {
+const newOrder = async (side, quantity) => {
   try {
     const totalParams = {
       symbol: SYMBOL,
       type: "MARKET",
       side,
       positionSide: "BOTH",
-      quantity: QUANTITY_PER_ORDER,
+      quantity,
       reduceOnly: false,
       timestamp: Date.now()
     };
