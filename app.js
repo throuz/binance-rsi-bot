@@ -8,7 +8,7 @@ import {
   getAvailableQuantity,
   getAllowableQuantity
 } from "./src/helpers.js";
-import { newOrder, closePosition } from "./src/trade.js";
+import { newOrder } from "./src/trade.js";
 
 const { INITIAL_QUANTITY, SCALE_OUT_RATE } = tradeConfig;
 
@@ -40,11 +40,10 @@ const check = async () => {
     const oppositeSignal = getOppositeSide(signal);
 
     if (positionDirection === oppositeSignal) {
-      await closePosition(signal, Math.abs(positionAmount));
-      await makeNewOrder(signal);
-    } else {
-      await makeNewOrder(signal);
+      const closeQuantity = Math.abs(positionAmount);
+      await newOrder(signal, closeQuantity);
     }
+    await makeNewOrder(signal);
   }
 };
 

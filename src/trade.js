@@ -11,9 +11,7 @@ const newOrder = async (side, quantity) => {
       symbol: SYMBOL,
       type: "MARKET",
       side,
-      positionSide: "BOTH",
       quantity,
-      reduceOnly: false,
       timestamp: Date.now()
     };
     const signature = getSignature(totalParams);
@@ -29,29 +27,4 @@ const newOrder = async (side, quantity) => {
   }
 };
 
-const closePosition = async (side, quantity) => {
-  try {
-    const totalParams = {
-      symbol: SYMBOL,
-      type: "MARKET",
-      side,
-      quantity,
-      positionSide: "BOTH",
-      reduceOnly: true,
-      newOrderRespType: "RESULT",
-      timestamp: Date.now()
-    };
-    const signature = getSignature(totalParams);
-
-    await binanceFuturesAPI.post("/fapi/v1/order", {
-      ...totalParams,
-      signature
-    });
-    log("Close position!");
-    await sendLineNotify("Close position!");
-  } catch (error) {
-    await handleAPIError(error);
-  }
-};
-
-export { newOrder, closePosition };
+export { newOrder };
