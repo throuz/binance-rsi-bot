@@ -10,19 +10,20 @@ import {
 } from "./src/helpers.js";
 import { newOrder } from "./src/trade.js";
 
-const { INITIAL_QUANTITY, SCALE_OUT_RATE } = tradeConfig;
+const { INITIAL_QUANTITY, POSITION_SCALE_OUT_RATE } = tradeConfig;
 
 let addPositionTimes = 0;
 
-const makeNewOrder = async (signal) => {
+const openPosition = async (signal) => {
   const [availableQuantity, allowableQuantity] = await Promise.all([
     getAvailableQuantity(),
     getAllowableQuantity()
   ]);
 
   const orderQuantity =
-    Math.trunc(INITIAL_QUANTITY * SCALE_OUT_RATE ** addPositionTimes * 1000) /
-    1000;
+    Math.trunc(
+      INITIAL_QUANTITY * POSITION_SCALE_OUT_RATE ** addPositionTimes * 1000
+    ) / 1000;
 
   if (Math.min(availableQuantity, allowableQuantity) >= orderQuantity) {
     await newOrder(signal, orderQuantity);
@@ -32,18 +33,23 @@ const makeNewOrder = async (signal) => {
   }
 };
 
+const closePosition = async (signal) => {
+  const positionAmount = await getPositionAmount();
+  const positionDirection = getPositionDirection(positionAmount);
+  const oppositeSignal = getOppositeSide(signal);
+
+  if (positionDirection === oppositeSignal) {
+    addPositionTimes = 0;
+    const closeQuantity = Math.abs(positionAmount);
+    await newOrder(signal, closeQuantity);
+  }
+};
+
 const check = async () => {
   const signal = await getSignal();
   if (signal !== "NONE") {
-    const positionAmount = await getPositionAmount();
-    const positionDirection = getPositionDirection(positionAmount);
-    const oppositeSignal = getOppositeSide(signal);
-
-    if (positionDirection === oppositeSignal) {
-      const closeQuantity = Math.abs(positionAmount);
-      await newOrder(signal, closeQuantity);
-    }
-    await makeNewOrder(signal);
+    await closePosition(signal);
+    await openPosition(signal);
   }
 };
 
