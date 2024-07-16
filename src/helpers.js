@@ -2,7 +2,6 @@ import { heikinashi } from "technicalindicators";
 import {
   KLINE_INTERVAL,
   KLINE_LIMIT,
-  LONG_TERM_KLINE_INTERVAL,
   QUOTE_ASSET,
   SYMBOL,
   KLINE_START_TIME,
@@ -133,61 +132,6 @@ export const getKlineData = async () => {
     highPrice: Number(kline[2]),
     lowPrice: Number(kline[3]),
     closePrice: Number(kline[4]),
-    volume: Number(kline[5]),
-    openTime: kline[0],
-    closeTime: kline[6]
-  }));
-  return results;
-};
-
-// HA -> Heikin Ashi
-export const getHAKlineData = async () => {
-  const klineData = await getOriginalKlineData();
-  const openPrices = klineData.map((kline) => Number(kline[1]));
-  const highPrices = klineData.map((kline) => Number(kline[2]));
-  const lowPrices = klineData.map((kline) => Number(kline[3]));
-  const closePrices = klineData.map((kline) => Number(kline[4]));
-  const heikinashiResults = heikinashi({
-    open: openPrices,
-    high: highPrices,
-    low: lowPrices,
-    close: closePrices
-  });
-  const results = klineData.map((kline, i) => ({
-    openPrice: heikinashiResults.open[i],
-    highPrice: heikinashiResults.high[i],
-    lowPrice: heikinashiResults.low[i],
-    closePrice: heikinashiResults.close[i],
-    volume: Number(kline[5]),
-    openTime: kline[0],
-    closeTime: kline[6]
-  }));
-  return results;
-};
-
-// LTHA -> Long Term Heikin Ashi
-export const getLTHAKlineData = async () => {
-  const params = {
-    symbol: SYMBOL,
-    interval: LONG_TERM_KLINE_INTERVAL,
-    limit: 1500
-  };
-  const klineData = await klineDataAPI(params);
-  const openPrices = klineData.map((kline) => Number(kline[1]));
-  const highPrices = klineData.map((kline) => Number(kline[2]));
-  const lowPrices = klineData.map((kline) => Number(kline[3]));
-  const closePrices = klineData.map((kline) => Number(kline[4]));
-  const heikinashiResults = heikinashi({
-    open: openPrices,
-    high: highPrices,
-    low: lowPrices,
-    close: closePrices
-  });
-  const results = klineData.map((kline, i) => ({
-    openPrice: heikinashiResults.open[i],
-    highPrice: heikinashiResults.high[i],
-    lowPrice: heikinashiResults.low[i],
-    closePrice: heikinashiResults.close[i],
     volume: Number(kline[5]),
     openTime: kline[0],
     closeTime: kline[6]

@@ -5,8 +5,7 @@ export const getSignal = async ({
   index,
   rsiPeriod,
   rsiUpperLimit,
-  rsiLowerLimit,
-  isUnRealizedProfit
+  rsiLowerLimit
 }) => {
   const cachedRsiData = await getCachedRsiData();
   const rsiData = cachedRsiData.get(rsiPeriod);
@@ -17,23 +16,23 @@ export const getSignal = async ({
       return "OPEN_LONG";
     }
   }
-  // CLOSE_LONG
-  if (positionType === "LONG") {
-    if (preRsi < rsiLowerLimit && isUnRealizedProfit) {
-      return "CLOSE_LONG";
+  // OPEN_SHORT
+  if (positionType === "NONE") {
+    if (preRsi < rsiLowerLimit) {
+      return "OPEN_SHORT";
     }
   }
-  // // OPEN_SHORT
-  // if (positionType === "NONE") {
-  //   if (preRsi < rsiLowerLimit) {
-  //     return "OPEN_SHORT";
-  //   }
-  // }
-  // // CLOSE_SHORT
-  // if (positionType === "SHORT") {
-  //   if (preRsi > rsiUpperLimit) {
-  //     return "CLOSE_SHORT";
-  //   }
-  // }
+  // LONG_TO_SHORT
+  if (positionType === "LONG") {
+    if (preRsi < rsiLowerLimit) {
+      return "LONG_TO_SHORT";
+    }
+  }
+  // SHORT_TO_LONG
+  if (positionType === "SHORT") {
+    if (preRsi > rsiUpperLimit) {
+      return "SHORT_TO_LONG";
+    }
+  }
   return "NONE";
 };

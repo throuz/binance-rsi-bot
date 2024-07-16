@@ -55,24 +55,25 @@ const executeStrategy = async () => {
       index: cachedKlineData.length - 1,
       rsiPeriod,
       rsiUpperLimit,
-      rsiLowerLimit,
-      isUnRealizedProfit
+      rsiLowerLimit
     });
     if (signal === "OPEN_LONG") {
       await openPosition("BUY");
     }
-    if (signal === "CLOSE_LONG") {
+    if (signal === "OPEN_SHORT") {
+      await openPosition("SELL");
+    }
+    if (signal === "LONG_TO_SHORT") {
       await closePosition("SELL");
+      await openPosition("SELL");
       await logBalance();
       if (isUnRealizedProfit === false) {
         await setSignalConfigs();
       }
     }
-    if (signal === "OPEN_SHORT") {
-      await openPosition("SELL");
-    }
-    if (signal === "CLOSE_SHORT") {
+    if (signal === "SHORT_TO_LONG") {
       await closePosition("BUY");
+      await openPosition("BUY");
       await logBalance();
       if (isUnRealizedProfit === false) {
         await setSignalConfigs();
