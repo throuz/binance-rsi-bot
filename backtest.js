@@ -5,22 +5,22 @@ const {
   isStillHasPosition,
   fund,
   rsiPeriod,
-  rsiUpperLimit,
-  rsiLowerLimit,
+  rsiLongLevel,
+  rsiShortLevel,
   leverage
 } = bestResult;
 console.log("================================================================");
 await getBacktestResult({
   shouldLogResults: true,
   rsiPeriod,
-  rsiUpperLimit,
-  rsiLowerLimit,
+  rsiLongLevel,
+  rsiShortLevel,
   leverage
 });
 console.log("================================================================");
 console.log("isStillHasPosition", isStillHasPosition);
 console.log("fund", fund);
 console.log("rsiPeriod", rsiPeriod);
-console.log("rsiUpperLimit", rsiUpperLimit);
-console.log("rsiLowerLimit", rsiLowerLimit);
+console.log("rsiLongLevel", rsiLongLevel);
+console.log("rsiShortLevel", rsiShortLevel);
 console.log("leverage", leverage);

@@ -17,15 +17,15 @@ const setSignalConfigs = async () => {
   const {
     isStillHasPosition,
     rsiPeriod,
-    rsiUpperLimit,
-    rsiLowerLimit,
+    rsiLongLevel,
+    rsiShortLevel,
     leverage
   } = bestResult;
   nodeCache.mset([
     { key: "isStillHasPosition", val: isStillHasPosition, ttl: 0 },
     { key: "rsiPeriod", val: rsiPeriod, ttl: 0 },
-    { key: "rsiUpperLimit", val: rsiUpperLimit, ttl: 0 },
-    { key: "rsiLowerLimit", val: rsiLowerLimit, ttl: 0 },
+    { key: "rsiLongLevel", val: rsiLongLevel, ttl: 0 },
+    { key: "rsiShortLevel", val: rsiShortLevel, ttl: 0 },
     { key: "leverage", val: leverage, ttl: 0 }
   ]);
   console.log(bestResult);
@@ -39,10 +39,10 @@ const logBalance = async () => {
 
 const executeStrategy = async () => {
   try {
-    const { rsiPeriod, rsiUpperLimit, rsiLowerLimit } = nodeCache.mget([
+    const { rsiPeriod, rsiLongLevel, rsiShortLevel } = nodeCache.mget([
       "rsiPeriod",
-      "rsiUpperLimit",
-      "rsiLowerLimit"
+      "rsiLongLevel",
+      "rsiShortLevel"
     ]);
     const [positionType, cachedKlineData, isUnRealizedProfit] =
       await Promise.all([
@@ -54,8 +54,8 @@ const executeStrategy = async () => {
       positionType,
       index: cachedKlineData.length - 1,
       rsiPeriod,
-      rsiUpperLimit,
-      rsiLowerLimit
+      rsiLongLevel,
+      rsiShortLevel
     });
     if (signal === "OPEN_LONG") {
       await openPosition("BUY");

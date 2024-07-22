@@ -1,11 +1,11 @@
 import { Presets, SingleBar } from "cli-progress";
 import {
   RSI_PERIOD_SETTING,
-  RSI_LOWER_LIMIT_SETTING,
+  RSI_SHORT_LEVEL_SETTING,
   FEE,
   FUNDING_RATE,
   INITIAL_FUNDING,
-  RSI_UPPER_LIMIT_SETTING,
+  RSI_LONG_LEVEL_SETTING,
   LEVERAGE_SETTING,
   ORDER_AMOUNT_PERCENT,
   RANDOM_SAMPLE_NUMBER
@@ -73,8 +73,8 @@ const getFundingFee = ({ positionFund, openTimestamp, closeTimestamp }) => {
 export const getBacktestResult = async ({
   shouldLogResults,
   rsiPeriod,
-  rsiUpperLimit,
-  rsiLowerLimit,
+  rsiLongLevel,
+  rsiShortLevel,
   leverage
 }) => {
   let fund = INITIAL_FUNDING;
@@ -91,8 +91,8 @@ export const getBacktestResult = async ({
       positionType,
       index: i,
       rsiPeriod,
-      rsiUpperLimit,
-      rsiLowerLimit
+      rsiLongLevel,
+      rsiShortLevel
     });
     const openLong = () => {
       positionFund = fund * ((ORDER_AMOUNT_PERCENT - 1) / 100) * leverage; // Actual tests have found that typically 1% less
@@ -202,8 +202,8 @@ export const getBacktestResult = async ({
     isStillHasPosition: !!positionFund,
     fund,
     rsiPeriod,
-    rsiUpperLimit,
-    rsiLowerLimit,
+    rsiLongLevel,
+    rsiShortLevel,
     leverage
   };
 };
@@ -233,27 +233,27 @@ const getSettings = () => {
       })
     ) {
       for (
-        let rsiUpperLimit = RSI_UPPER_LIMIT_SETTING.min;
-        rsiUpperLimit <= RSI_UPPER_LIMIT_SETTING.max;
-        rsiUpperLimit = getAddedNumber({
-          number: rsiUpperLimit,
-          addNumber: RSI_UPPER_LIMIT_SETTING.step,
+        let rsiLongLevel = RSI_LONG_LEVEL_SETTING.min;
+        rsiLongLevel <= RSI_LONG_LEVEL_SETTING.max;
+        rsiLongLevel = getAddedNumber({
+          number: rsiLongLevel,
+          addNumber: RSI_LONG_LEVEL_SETTING.step,
           digit: 0
         })
       ) {
         for (
-          let rsiLowerLimit = RSI_LOWER_LIMIT_SETTING.min;
-          rsiLowerLimit <= RSI_LOWER_LIMIT_SETTING.max;
-          rsiLowerLimit = getAddedNumber({
-            number: rsiLowerLimit,
-            addNumber: RSI_LOWER_LIMIT_SETTING.step,
+          let rsiShortLevel = RSI_SHORT_LEVEL_SETTING.min;
+          rsiShortLevel <= RSI_SHORT_LEVEL_SETTING.max;
+          rsiShortLevel = getAddedNumber({
+            number: rsiShortLevel,
+            addNumber: RSI_SHORT_LEVEL_SETTING.step,
             digit: 0
           })
         ) {
           settings.push({
             rsiPeriod,
-            rsiUpperLimit,
-            rsiLowerLimit,
+            rsiLongLevel,
+            rsiShortLevel,
             leverage
           });
         }
@@ -288,12 +288,12 @@ export const getBestResult = async () => {
   let bestResult = { fund: 0 };
 
   for (const setting of randomSettings) {
-    const { rsiPeriod, rsiUpperLimit, rsiLowerLimit, leverage } = setting;
+    const { rsiPeriod, rsiLongLevel, rsiShortLevel, leverage } = setting;
     const backtestResult = await getBacktestResult({
       shouldLogResults: false,
       rsiPeriod,
-      rsiUpperLimit,
-      rsiLowerLimit,
+      rsiLongLevel,
+      rsiShortLevel,
       leverage
     });
     if (backtestResult && backtestResult.fund > bestResult.fund) {

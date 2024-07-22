@@ -1,4 +1,3 @@
-import { heikinashi } from "technicalindicators";
 import {
   KLINE_INTERVAL,
   KLINE_LIMIT,
