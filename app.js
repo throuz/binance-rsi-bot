@@ -15,14 +15,14 @@ const setSignalConfigs = async () => {
   console.log(new Date().toLocaleString());
   const bestResult = await getBestResult();
   const {
-    isStillHasPosition,
+    currentPositionType,
     rsiPeriod,
     rsiLongLevel,
     rsiShortLevel,
     leverage
   } = bestResult;
   nodeCache.mset([
-    { key: "isStillHasPosition", val: isStillHasPosition, ttl: 0 },
+    { key: "currentPositionType", val: currentPositionType, ttl: 0 },
     { key: "rsiPeriod", val: rsiPeriod, ttl: 0 },
     { key: "rsiLongLevel", val: rsiLongLevel, ttl: 0 },
     { key: "rsiShortLevel", val: rsiShortLevel, ttl: 0 },

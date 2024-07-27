@@ -1,15 +1,9 @@
-import { getCachedRsiData } from "./cached-data.js";
-
 export const getSignal = async ({
   positionType,
-  index,
-  rsiPeriod,
+  preRsi,
   rsiLongLevel,
   rsiShortLevel
 }) => {
-  const cachedRsiData = await getCachedRsiData();
-  const rsiData = cachedRsiData.get(rsiPeriod);
-  const preRsi = rsiData[index - 1];
   // OPEN_LONG
   if (positionType === "NONE") {
     if (preRsi > rsiLongLevel) {

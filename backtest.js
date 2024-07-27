@@ -2,7 +2,7 @@ import { getBacktestResult, getBestResult } from "./src/backtest.js";
 
 const bestResult = await getBestResult();
 const {
-  isStillHasPosition,
+  currentPositionType,
   fund,
   rsiPeriod,
   rsiLongLevel,
@@ -18,7 +18,7 @@ await getBacktestResult({
   leverage
 });
 console.log("================================================================");
-console.log("isStillHasPosition", isStillHasPosition);
+console.log("currentPositionType", currentPositionType);
 console.log("fund", fund);
 console.log("rsiPeriod", rsiPeriod);
 console.log("rsiLongLevel", rsiLongLevel);
