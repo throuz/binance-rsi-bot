@@ -63,6 +63,9 @@ export const getPositionInformation = async () => {
 
 export const getPositionType = async () => {
   const positionInformation = await getPositionInformation();
+  if (positionInformation === undefined) {
+    return "NONE";
+  }
   const positionAmt = Number(positionInformation.positionAmt);
   if (positionAmt > 0) {
     return "LONG";

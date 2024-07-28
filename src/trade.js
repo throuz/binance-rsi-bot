@@ -53,19 +53,15 @@ const newOpenOrder = async ({ orderAmountPercent, side }) => {
 };
 
 export const openPosition = async (side) => {
-  const positionInformation = await getPositionInformation();
-  const leverage = nodeCache.get("leverage");
-  if (Number(positionInformation.leverage) !== leverage) {
-    await changeToMaxLeverage();
-  }
+  await changeToMaxLeverage();
   await newOpenOrder({ orderAmountPercent: ORDER_AMOUNT_PERCENT, side });
   await sendLineNotify("Open position!");
 };
 
 export const closePosition = async (side) => {
   const positionInformation = await getPositionInformation();
-  const amount = Math.abs(positionInformation.positionAmt);
-  if (amount > 0) {
+  if (positionInformation) {
+    const amount = Math.abs(positionInformation.positionAmt);
     await newOrder({
       symbol: SYMBOL,
       side,
