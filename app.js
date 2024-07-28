@@ -50,4 +50,4 @@ const executeStrategy = async () => {
 
 await setSignalConfigs();
 
-schedule.scheduleJob("1 8 * * *", executeStrategy);
+schedule.scheduleJob("1 * * * *", executeStrategy);
