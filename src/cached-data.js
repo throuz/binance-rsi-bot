@@ -7,7 +7,8 @@ let cachedRsiData = new Map();
 
 const shouldGetLatestData = (data) => {
   const noCachedData = data.length === 0;
-  const isCachedDataExpired = Date.now() > data[data.length - 1].closeTime;
+  const isCachedDataExpired =
+    data.length > 0 && Date.now() > data[data.length - 1].closeTime;
   if (process.env.NODE_SCRIPT === "backtest") {
     return noCachedData;
   }
