@@ -34,7 +34,7 @@ export const exchangeInformationAPI = async () => {
 };
 
 export const futuresAccountBalanceAPI = async (params) => {
-  const responseData = await getBinanceFuturesAPI("/fapi/v2/balance", params);
+  const responseData = await getBinanceFuturesAPI("/fapi/v3/balance", params);
   return responseData;
 };
 
@@ -48,7 +48,7 @@ export const symbolPriceTickerAPI = async (params) => {
 
 export const positionInformationAPI = async (params) => {
   const responseData = await getBinanceFuturesAPI(
-    "/fapi/v2/positionRisk",
+    "/fapi/v3/positionRisk",
     params
   );
   return responseData;
