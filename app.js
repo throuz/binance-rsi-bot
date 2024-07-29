@@ -48,6 +48,6 @@ const executeStrategy = async () => {
   }
 };
 
-await setSignalConfigs();
+await executeStrategy();
 
 schedule.scheduleJob("1 * * * *", executeStrategy);
