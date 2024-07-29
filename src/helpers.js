@@ -76,27 +76,9 @@ export const getPositionType = async () => {
   return "NONE";
 };
 
-const getAllowableQuantity = async () => {
-  const [positionInformation, latestPrice] = await Promise.all([
-    getPositionInformation(),
-    getLatestPrice()
-  ]);
-  const { maxNotionalValue, positionAmt } = positionInformation;
-  const maxAllowableQuantity = maxNotionalValue / latestPrice;
-  return maxAllowableQuantity - Math.abs(positionAmt);
-};
-
-const getInvestableQuantity = async () => {
-  const [availableQuantity, allowableQuantity] = await Promise.all([
-    getAvailableQuantity(),
-    getAllowableQuantity()
-  ]);
-  return Math.min(availableQuantity, allowableQuantity);
-};
-
 export const getOrderQuantity = async (orderAmountPercent) => {
-  const investableQuantity = await getInvestableQuantity();
-  const orderQuantity = investableQuantity * (orderAmountPercent / 100);
+  const availableQuantity = await getAvailableQuantity();
+  const orderQuantity = availableQuantity * (orderAmountPercent / 100);
   return orderQuantity;
 };
 
