@@ -13,17 +13,33 @@ export const getSignature = (params) => {
   return signature;
 };
 
+const retry = async (fn, retries = 3, delay = 1000) => {
+  for (let i = 0; i < retries; i++) {
+    try {
+      return await fn();
+    } catch (err) {
+      if (i === retries - 1) throw err;
+      await new Promise((res) => setTimeout(res, delay));
+    }
+  }
+};
+
 export const getBinanceFuturesAPI = async (path, params) => {
   const signature = getSignature(params);
   const key = path + "/" + signature;
   if (nodeCache.has(key)) {
     return nodeCache.get(key);
   }
-  const response = await binanceFuturesAPI.get(path, {
-    params: { ...params, signature }
-  });
-  nodeCache.set(key, response.data);
-  return response.data;
+
+  const fetchData = async () => {
+    const response = await binanceFuturesAPI.get(path, {
+      params: { ...params, signature }
+    });
+    nodeCache.set(key, response.data);
+    return response.data;
+  };
+
+  return await retry(fetchData);
 };
 
 // GET
