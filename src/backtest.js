@@ -12,6 +12,7 @@ import {
 } from "../configs/trade-config.js";
 import { getCachedKlineData, getCachedRsiData } from "./cached-data.js";
 import { getSignal } from "./signal.js";
+import { getStepSize, formatBySize } from "./helpers.js";
 
 const getReadableTime = (timestamp) => {
   const date = new Date(timestamp);
@@ -24,10 +25,10 @@ const getReadableTime = (timestamp) => {
   return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
 };
 
-const getLogColor = (finalPnl) => {
+const getLogColor = (pnl) => {
   const logRedColor = "\x1b[31m";
   const logGreenColor = "\x1b[32m";
-  return finalPnl > 0 ? logGreenColor : logRedColor;
+  return pnl > 0 ? logGreenColor : logRedColor;
 };
 
 const toPercentage = (number) => {
@@ -42,18 +43,19 @@ const calculateHours = (openTimestamp, closeTimestamp) => {
 
 const logTradeResult = ({
   fund,
-  finalFund,
+  positionFund,
+  pnl,
   positionType,
   openPrice,
   closePrice,
   openTimestamp,
   closeTimestamp
 }) => {
-  const finalPnl = finalFund - fund;
+  const finalFund = fund + positionFund + pnl;
   const logResetColor = "\x1b[0m";
-  const logColor = getLogColor(finalPnl);
+  const logColor = getLogColor(pnl);
   const formatedFund = finalFund.toFixed(2);
-  const pnlPercentage = toPercentage(finalPnl / fund);
+  const pnlPercentage = toPercentage(pnl / positionFund);
   const holdTimeHours = calculateHours(openTimestamp, closeTimestamp);
   const startTime = getReadableTime(openTimestamp);
   const endTime = getReadableTime(closeTimestamp);
@@ -62,16 +64,22 @@ const logTradeResult = ({
   );
 };
 
-const getFundingFee = ({ positionFund, openTimestamp, closeTimestamp }) => {
+const getFundingFee = ({
+  positionAmt,
+  closePrice,
+  openTimestamp,
+  closeTimestamp
+}) => {
   const timeDifference = closeTimestamp - openTimestamp;
   const hours = timeDifference / (1000 * 60 * 60);
   const times = Math.floor(hours / 8);
-  const fundingFee = positionFund * FUNDING_RATE * times;
+  const fundingFee = positionAmt * closePrice * FUNDING_RATE * times;
   return fundingFee;
 };
 
 export const getBacktestResult = async ({
   shouldLogResults,
+  stepSize,
   rsiPeriod,
   rsiLongLevel,
   rsiShortLevel,
@@ -79,11 +87,11 @@ export const getBacktestResult = async ({
 }) => {
   let fund = INITIAL_FUNDING;
   let positionType = "NONE";
+  let positionAmt = null;
   let positionFund = null;
   let openTimestamp = null;
   let openPrice = null;
   let liquidationPrice = null;
-  let quantity = null;
   const cachedKlineData = await getCachedKlineData();
   const cachedRsiData = await getCachedRsiData();
   const rsiData = cachedRsiData.get(rsiPeriod);
@@ -97,41 +105,33 @@ export const getBacktestResult = async ({
       rsiShortLevel
     });
     const openLong = () => {
-      positionFund = fund * ((ORDER_AMOUNT_PERCENT - 1) / 100) * leverage; // Actual tests have found that typically 1% less
-      const fee = positionFund * FEE;
-      fund = fund - fee;
+      openPrice = curKline.openPrice;
+      const orderQuantity =
+        (fund * (ORDER_AMOUNT_PERCENT / 100) * leverage) / openPrice;
+      positionAmt = formatBySize(orderQuantity, stepSize);
+      const fee = positionAmt * openPrice * FEE;
+      positionFund = (positionAmt * openPrice) / leverage;
+      fund = fund - positionFund - fee;
       positionType = "LONG";
       openTimestamp = curKline.openTime;
-      openPrice = curKline.openPrice;
-      liquidationPrice = openPrice * (1 - 1 / leverage + 0.01); // Actual tests have found that typically 1% deviation
-      quantity = positionFund / openPrice;
-    };
-    const openShort = () => {
-      positionFund = fund * ((ORDER_AMOUNT_PERCENT - 1) / 100) * leverage; // Actual tests have found that typically 1% less
-      const fee = positionFund * FEE;
-      fund = fund - fee;
-      positionType = "SHORT";
-      openTimestamp = curKline.openTime;
-      openPrice = curKline.openPrice;
-      liquidationPrice = openPrice * (1 + 1 / leverage - 0.01); // Actual tests have found that typically 1% deviation
-      quantity = positionFund / openPrice;
+      liquidationPrice = openPrice * (1 - 1 / leverage);
     };
     const closeLong = () => {
       const closePrice = curKline.openPrice;
-      const pnl = (closePrice - openPrice) * quantity;
-      positionFund += pnl;
-      const fee = positionFund * FEE;
       const closeTimestamp = curKline.openTime;
+      const fee = positionAmt * closePrice * FEE;
       const fundingFee = getFundingFee({
-        positionFund,
+        positionAmt,
+        closePrice,
         openTimestamp,
         closeTimestamp
       });
-      const finalFund = fund + pnl - fee - fundingFee;
+      const pnl = (closePrice - openPrice) * positionAmt - fee - fundingFee;
       if (shouldLogResults) {
         logTradeResult({
           fund,
-          finalFund,
+          positionFund,
+          pnl,
           positionType,
           openPrice,
           closePrice,
@@ -139,64 +139,22 @@ export const getBacktestResult = async ({
           closeTimestamp
         });
       }
-      fund = finalFund;
+      fund = fund + positionFund + pnl;
       positionType = "NONE";
+      positionAmt = null;
       positionFund = null;
       openTimestamp = null;
       openPrice = null;
       liquidationPrice = null;
-      quantity = null;
-    };
-    const closeShort = () => {
-      const closePrice = curKline.openPrice;
-      const pnl = (openPrice - closePrice) * quantity;
-      positionFund += pnl;
-      const fee = positionFund * FEE;
-      const closeTimestamp = curKline.openTime;
-      const fundingFee = getFundingFee({
-        positionFund,
-        openTimestamp,
-        closeTimestamp
-      });
-      const finalFund = fund + pnl - fee + fundingFee;
-      if (shouldLogResults) {
-        logTradeResult({
-          fund,
-          finalFund,
-          positionType,
-          openPrice,
-          closePrice,
-          openTimestamp,
-          closeTimestamp
-        });
-      }
-      fund = finalFund;
-      positionType = "NONE";
-      positionFund = null;
-      openTimestamp = null;
-      openPrice = null;
-      liquidationPrice = null;
-      quantity = null;
     };
     if (signal === "OPEN_LONG") {
       openLong();
     }
-    if (signal === "OPEN_SHORT") {
-      openShort();
-    }
-    if (signal === "LONG_TO_SHORT") {
+    if (signal === "CLOSE_LONG") {
       closeLong();
-      openShort();
-    }
-    if (signal === "SHORT_TO_LONG") {
-      closeShort();
-      openLong();
     }
     // Liquidation
-    if (
-      (positionType === "LONG" && curKline.lowPrice < liquidationPrice) ||
-      (positionType === "SHORT" && curKline.highPrice > liquidationPrice)
-    ) {
+    if (positionType === "LONG" && curKline.lowPrice < liquidationPrice) {
       return null;
     }
   }
@@ -289,10 +247,13 @@ export const getBestResult = async () => {
 
   let bestResult = { fund: 0 };
 
+  const stepSize = await getStepSize();
+
   for (const setting of randomSettings) {
     const { rsiPeriod, rsiLongLevel, rsiShortLevel, leverage } = setting;
     const backtestResult = await getBacktestResult({
       shouldLogResults: false,
+      stepSize,
       rsiPeriod,
       rsiLongLevel,
       rsiShortLevel,

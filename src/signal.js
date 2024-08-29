@@ -10,22 +10,10 @@ export const getSignal = async ({
       return "OPEN_LONG";
     }
   }
-  // OPEN_SHORT
-  if (positionType === "NONE") {
-    if (preRsi < rsiShortLevel) {
-      return "OPEN_SHORT";
-    }
-  }
-  // LONG_TO_SHORT
+  // CLOSE_LONG
   if (positionType === "LONG") {
     if (preRsi < rsiShortLevel) {
-      return "LONG_TO_SHORT";
-    }
-  }
-  // SHORT_TO_LONG
-  if (positionType === "SHORT") {
-    if (preRsi > rsiLongLevel) {
-      return "SHORT_TO_LONG";
+      return "CLOSE_LONG";
     }
   }
   return "NONE";

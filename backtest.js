@@ -1,4 +1,5 @@
 import { getBacktestResult, getBestResult } from "./src/backtest.js";
+import { getStepSize } from "./src/helpers.js";
 
 const bestResult = await getBestResult();
 const {
@@ -10,8 +11,10 @@ const {
   leverage
 } = bestResult;
 console.log("================================================================");
+const stepSize = await getStepSize();
 await getBacktestResult({
   shouldLogResults: true,
+  stepSize,
   rsiPeriod,
   rsiLongLevel,
   rsiShortLevel,
