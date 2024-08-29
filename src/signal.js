@@ -1,4 +1,4 @@
-export const getSignal = async ({
+export const getSignal = ({
   positionType,
   preRsi,
   rsiLongLevel,

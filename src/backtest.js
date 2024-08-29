@@ -92,13 +92,15 @@ export const getBacktestResult = async ({
   let openTimestamp = null;
   let openPrice = null;
   let liquidationPrice = null;
-  const cachedKlineData = await getCachedKlineData();
-  const cachedRsiData = await getCachedRsiData();
+  const [cachedKlineData, cachedRsiData] = await Promise.all([
+    getCachedKlineData(),
+    getCachedRsiData()
+  ]);
   const rsiData = cachedRsiData.get(rsiPeriod);
   for (let i = RSI_PERIOD_SETTING.max + 1; i < cachedKlineData.length; i++) {
     const curKline = cachedKlineData[i];
     const preRsi = rsiData[i - 1];
-    const signal = await getSignal({
+    const signal = getSignal({
       positionType,
       preRsi,
       rsiLongLevel,
