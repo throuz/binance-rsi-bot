@@ -77,8 +77,10 @@ const getFundingFee = ({
   return fundingFee;
 };
 
-export const getBacktestResult = async ({
+export const getBacktestResult = ({
   shouldLogResults,
+  cachedKlineData,
+  cachedRsiData,
   stepSize,
   rsiPeriod,
   rsiLongLevel,
@@ -92,10 +94,6 @@ export const getBacktestResult = async ({
   let openTimestamp = null;
   let openPrice = null;
   let liquidationPrice = null;
-  const [cachedKlineData, cachedRsiData] = await Promise.all([
-    getCachedKlineData(),
-    getCachedRsiData()
-  ]);
   const rsiData = cachedRsiData.get(rsiPeriod);
   for (let i = RSI_PERIOD_SETTING.max + 1; i < cachedKlineData.length; i++) {
     const curKline = cachedKlineData[i];
@@ -106,7 +104,7 @@ export const getBacktestResult = async ({
       rsiLongLevel,
       rsiShortLevel
     });
-    const openLong = () => {
+    if (signal === "OPEN_LONG") {
       openPrice = curKline.openPrice;
       const orderQuantity =
         (fund * (ORDER_AMOUNT_PERCENT / 100) * leverage) / openPrice;
@@ -117,8 +115,8 @@ export const getBacktestResult = async ({
       positionType = "LONG";
       openTimestamp = curKline.openTime;
       liquidationPrice = openPrice * (1 - 1 / leverage);
-    };
-    const closeLong = () => {
+    }
+    if (signal === "CLOSE_LONG") {
       const closePrice = curKline.openPrice;
       const closeTimestamp = curKline.openTime;
       const fee = positionAmt * closePrice * FEE;
@@ -148,12 +146,6 @@ export const getBacktestResult = async ({
       openTimestamp = null;
       openPrice = null;
       liquidationPrice = null;
-    };
-    if (signal === "OPEN_LONG") {
-      openLong();
-    }
-    if (signal === "CLOSE_LONG") {
-      closeLong();
     }
     // Liquidation
     if (positionType === "LONG" && curKline.lowPrice < liquidationPrice) {
@@ -249,12 +241,18 @@ export const getBestResult = async () => {
 
   let bestResult = { fund: 0 };
 
-  const stepSize = await getStepSize();
+  const [cachedKlineData, cachedRsiData, stepSize] = await Promise.all([
+    getCachedKlineData(),
+    getCachedRsiData(),
+    getStepSize()
+  ]);
 
   for (const setting of randomSettings) {
     const { rsiPeriod, rsiLongLevel, rsiShortLevel, leverage } = setting;
-    const backtestResult = await getBacktestResult({
+    const backtestResult = getBacktestResult({
       shouldLogResults: false,
+      cachedKlineData,
+      cachedRsiData,
       stepSize,
       rsiPeriod,
       rsiLongLevel,

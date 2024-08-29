@@ -1,5 +1,6 @@
 import { getBacktestResult, getBestResult } from "./src/backtest.js";
 import { getStepSize } from "./src/helpers.js";
+import { getCachedKlineData, getCachedRsiData } from "./src/cached-data.js";
 
 const bestResult = await getBestResult();
 const {
@@ -11,15 +12,24 @@ const {
   leverage
 } = bestResult;
 console.log("================================================================");
-const stepSize = await getStepSize();
-await getBacktestResult({
+
+const [cachedKlineData, cachedRsiData, stepSize] = await Promise.all([
+  getCachedKlineData(),
+  getCachedRsiData(),
+  getStepSize()
+]);
+
+getBacktestResult({
   shouldLogResults: true,
+  cachedKlineData,
+  cachedRsiData,
   stepSize,
   rsiPeriod,
   rsiLongLevel,
   rsiShortLevel,
   leverage
 });
+
 console.log("================================================================");
 console.log("currentPositionType", currentPositionType);
 console.log("fund", fund);
