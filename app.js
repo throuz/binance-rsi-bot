@@ -1,5 +1,4 @@
 import schedule from "node-schedule";
-import { getBestResult } from "./src/backtest.js";
 import { nodeCache } from "./src/cache.js";
 import { errorHandler, sendLineNotify } from "./src/common.js";
 import { getAvailableBalance, getPositionType } from "./src/helpers.js";
@@ -7,35 +6,31 @@ import { closePosition, openPosition } from "./src/trade.js";
 import { getCachedKlineData } from "./src/cached-data.js";
 import { rsi } from "technicalindicators";
 import { getSignal } from "./src/signal.js";
+import {
+  RSI_PERIOD,
+  RSI_LONG_LEVEL,
+  RSI_SHORT_LEVEL,
+  LEVERAGE
+} from "./configs/trade-config.js";
 
 const logBalance = async () => {
   const availableBalance = await getAvailableBalance();
   await sendLineNotify(`Balance: ${availableBalance}`);
 };
 
-const setSignalConfigs = async () => {
+const setTradeConfigs = async () => {
   console.log(new Date().toLocaleString());
-  const bestResult = await getBestResult();
-  const {
-    currentPositionType,
-    rsiPeriod,
-    rsiLongLevel,
-    rsiShortLevel,
-    leverage
-  } = bestResult;
   nodeCache.mset([
-    { key: "currentPositionType", val: currentPositionType, ttl: 0 },
-    { key: "rsiPeriod", val: rsiPeriod, ttl: 0 },
-    { key: "rsiLongLevel", val: rsiLongLevel, ttl: 0 },
-    { key: "rsiShortLevel", val: rsiShortLevel, ttl: 0 },
-    { key: "leverage", val: leverage, ttl: 0 }
+    { key: "rsiPeriod", val: RSI_PERIOD, ttl: 0 },
+    { key: "rsiLongLevel", val: RSI_LONG_LEVEL, ttl: 0 },
+    { key: "rsiShortLevel", val: RSI_SHORT_LEVEL, ttl: 0 },
+    { key: "leverage", val: LEVERAGE, ttl: 0 }
   ]);
-  console.log(bestResult);
   await logBalance();
   console.log("==============================================================");
 };
 
-await setSignalConfigs();
+await setTradeConfigs();
 
 const getTradeSignal = async () => {
   const positionType = await getPositionType();
@@ -57,6 +52,9 @@ const getTradeSignal = async () => {
 const executeStrategy = async () => {
   try {
     const tradeSignal = await getTradeSignal();
+    if (tradeSignal === "NONE") {
+      return;
+    }
     if (tradeSignal === "OPEN_LONG") {
       await openPosition("BUY");
     }

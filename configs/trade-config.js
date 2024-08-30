@@ -3,6 +3,10 @@ export const QUOTE_ASSET = "USDT";
 export const ORDER_AMOUNT_PERCENT = 100; // 100%
 export const KLINE_INTERVAL = "1h";
 export const KLINE_LIMIT = 1500;
+export const RSI_PERIOD = 55;
+export const RSI_LONG_LEVEL = 69;
+export const RSI_SHORT_LEVEL = 46;
+export const LEVERAGE = 11;
 
 // Only for backtest
 export const INITIAL_FUNDING = 100;
