@@ -27,7 +27,7 @@ const setTradeConfigs = async () => {
     { key: "leverage", val: LEVERAGE, ttl: 0 }
   ]);
   await logBalance();
-  console.log("==============================================================");
+  console.log("============================================================");
 };
 
 await setTradeConfigs();
@@ -51,9 +51,10 @@ const getTradeSignal = async () => {
 
 const executeStrategy = async () => {
   try {
+    console.log(new Date().toLocaleString());
     const tradeSignal = await getTradeSignal();
     if (tradeSignal === "NONE") {
-      return;
+      console.log("NONE");
     }
     if (tradeSignal === "OPEN_LONG") {
       await openPosition("BUY");
@@ -62,6 +63,7 @@ const executeStrategy = async () => {
       await closePosition("SELL");
       await logBalance();
     }
+    console.log("============================================================");
   } catch (error) {
     await errorHandler(error);
   }
